@@ -12,14 +12,19 @@ existing device. Phase 1 onwards adds a proper "Sound Transmitter" virtual devic
 
 ## Use
 
-**Desktop:** set the default playback device to *Speakers (3- High Definition
-Audio Device)*, the dead rear jack, so the desktop itself stays silent. Then run
-`C:\Users\Admin\SoundTransmitter\send.cmd`.
+**Desktop (the server):** set the default playback device to *Speakers (3- High
+Definition Audio Device)*, the dead rear jack, so the desktop itself stays
+silent. Then double-click `C:\Users\Admin\SoundTransmitter\startserver.cmd`.
 
-**Laptop:** run `listen.cmd` in this folder.
+**Laptop (the client):** double-click `startclient.cmd` in this folder.
 
-Either can start first. The receiver says hello once a second; the sender only
-streams while it hears one. Stop either with Ctrl+C.
+Either can start first. The client says hello once a second; the server only
+streams while it hears one. Each script tries again every 5 seconds if its
+program stops with an error (the other machine is off, say). Ctrl+C quits. Extra
+options pass straight through (`startclient.cmd --latency 60`), and logs go to
+`server.log` / `client.log` beside the scripts.
+
+The machine names are set at the top of each script (`CLIENT=`, `SERVER=`).
 
 The sender captures the default device as it was when it started. If you change
 the default, restart it.
@@ -91,9 +96,11 @@ dotnet publish src/SoundTransmitter.Recv -c Release -r win-x64 --no-self-contain
 ```
 
 The sender is self-contained because the desktop has no .NET. Copy
-`publish/st-send/st-send.exe` and `desktop/send.cmd` to
+`publish/st-send/st-send.exe` and `startserver.cmd` to
 `C:\Users\Admin\SoundTransmitter\` on the desktop
-(`scp <file> Admin@id10terror-desktop:SoundTransmitter/`).
+(`scp <file> Admin@id10terror-desktop:SoundTransmitter/`). The scripts look for
+their exe beside themselves first, then under `publish\`. Windows locks a
+running exe, so stop the program before copying over it.
 
 ## Layout
 

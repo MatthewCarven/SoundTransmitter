@@ -16,7 +16,16 @@ public static class Net
         // yet) into a ConnectionReset on the next receive. Switch that off.
         const int SIO_UDP_CONNRESET = unchecked((int)0x9800000C);
         socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
-        socket.Bind(new IPEndPoint(IPAddress.Any, localPort));
+        try
+        {
+            socket.Bind(new IPEndPoint(IPAddress.Any, localPort));
+        }
+        catch (SocketException e) when (e.SocketErrorCode == SocketError.AddressAlreadyInUse)
+        {
+            socket.Dispose();
+            throw new InvalidOperationException(
+                $"UDP port {localPort} is already in use: is another copy of this program already running?", e);
+        }
         return socket;
     }
 
