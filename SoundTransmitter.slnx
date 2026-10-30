@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SoundTransmitter.Core/SoundTransmitter.Core.csproj" />
+    <Project Path="src/SoundTransmitter.Recv/SoundTransmitter.Recv.csproj" />
+    <Project Path="src/SoundTransmitter.Send/SoundTransmitter.Send.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SoundTransmitter.Tests/SoundTransmitter.Tests.csproj" />
+  </Folder>
+</Solution>
