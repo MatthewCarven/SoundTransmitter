@@ -23,7 +23,7 @@ See PLAN.md for the why.
 - [ ] Desktop clock 3 min 26 s fast (see Claude-Notebook "Surfaced")
 - [ ] Concealment: a lost or late packet plays as a hard cut to silence; fade instead
 - [ ] Sender follows the default device only at start; follow default-device changes (IMMNotificationClient)
-- [ ] Sender started over SSH dies with the SSH session; Phase 3's logon task replaces that
+- [ ] A sender started over SSH runs hidden in the desktop's Services session and survives the SSH session ending (stop it with taskkill). Phase 3's logon task replaces that
 - [ ] Receiver: rebuild the output when its device goes away or changes format
 
 ## Phase 1: toolchain + stock sample
