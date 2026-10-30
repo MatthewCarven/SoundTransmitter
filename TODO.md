@@ -3,7 +3,7 @@
 See PLAN.md for the why.
 
 ## Matthew
-- [ ] `git init` this folder (Phase 0 code is in; nothing committed yet)
+- [x] `git init` this folder (github.com/MatthewCarven/SoundTransmitter, public; pushing is OK'd)
 - [ ] Desktop: set default playback device to "Speakers (3- High Definition Audio Device)" (dead jack) for listening
 - [ ] Phase 1: install the WDK on the laptop (VS 2026 support? if not, VS 2022 Build Tools alongside)
 - [ ] Phase 1: desktop restore point, `bcdedit /set testsigning on`, reboot

@@ -106,5 +106,8 @@ Live, 12:51: the sender captured the desktop's default output (the LG TV, 48 kHz
 so no rate conversion) and the receiver played it unmuted on the laptop's
 Headphones jack into the stereo. Matthew: "Sounds good." Phase 0 is done.
 
-Not done: an hour-long or overnight run. Nothing is committed yet, because the
-folder isn't a git repo.
+Not done: an hour-long or overnight run.
+
+Matthew ran `git init` and made github.com/MatthewCarven/SoundTransmitter
+(public). Phase 0 is committed as 46fe2d5 on `main`, renamed from git's default
+`master` to match his other repos, and pushed, with his go-ahead to push.
