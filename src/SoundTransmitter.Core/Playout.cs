@@ -26,17 +26,25 @@ public readonly record struct PlayoutStats(
 /// Running dry also raises the target (when a ceiling above it was given), so
 /// a network that keeps going quiet for longer than the buffer covers, like
 /// Wi-Fi off scanning other channels, costs a dropout or two and then fits.
+/// Once the network calms down, the target steps back towards where it
+/// started: after a long stretch in which the buffer never came within a step
+/// of empty, one step comes off. The drift controller slews the level down to
+/// the new target, so nothing is skipped.
 public sealed class Playout
 {
     const int RingFrames = 1 << 17;          // ~2.7 s at 48 kHz
     const double ResyncExcessSeconds = 0.25; // this far over target: jump
-    const double GrowthSeconds = 0.03;       // target raise per underrun
+    const double GrowthSeconds = 0.03;       // target raise per underrun, and drop per clean stretch
+    const double ShrinkMargin = 0.015;       // spare it must still have had, one step lower
+    public const double ShrinkAfterSeconds = 600;
 
     readonly object gate = new();
     readonly FrameRing ring = new(RingFrames);
     readonly DriftController drift;
     readonly int outputRate;
+    readonly double startTargetSeconds;
     readonly double maxTargetSeconds;
+    readonly double shrinkAfterSeconds;
     float[] decoded = new float[4096];
     float[] stereo = new float[4096];
 
@@ -51,6 +59,8 @@ public sealed class Playout
     long readIndex;  // playback position: readIndex + readFrac, in input frames
     double readFrac;
     double lastStep;
+    double cleanSeconds;    // played since playback last started or the target last came down
+    double lowWaterSeconds; // the least spare buffer over that time
 
     uint firstSeq;
     uint highestSeq;
@@ -61,10 +71,15 @@ public sealed class Playout
 
     /// <param name="maxTargetSeconds">How far underruns may raise the target;
     /// at or below <paramref name="targetSeconds"/> it stays fixed.</param>
-    public Playout(int outputRate, double targetSeconds, double maxTargetSeconds = 0)
+    /// <param name="shrinkAfterSeconds">How long a raised target must go
+    /// without a close call before it comes down a step.</param>
+    public Playout(int outputRate, double targetSeconds, double maxTargetSeconds = 0,
+        double shrinkAfterSeconds = ShrinkAfterSeconds)
     {
         this.outputRate = outputRate;
+        startTargetSeconds = targetSeconds;
         this.maxTargetSeconds = maxTargetSeconds;
+        this.shrinkAfterSeconds = shrinkAfterSeconds;
         drift = new DriftController(targetSeconds);
     }
 
@@ -147,6 +162,7 @@ public sealed class Playout
                 buffered -= excess;
                 playing = true;
                 drift.Resync();
+                StartCleanStretch();
             }
 
             if (buffered > target + ResyncExcessSeconds * inputRate)
@@ -165,6 +181,10 @@ public sealed class Playout
                 stereoOut.Clear();
                 return;
             }
+
+            lowWaterSeconds = Math.Min(lowWaterSeconds, (buffered - frames * worstStep) / inputRate);
+            cleanSeconds += frames / (double)outputRate;
+            if (cleanSeconds >= shrinkAfterSeconds) ShrinkTarget();
 
             double correction = drift.Update(buffered / inputRate, frames / (double)outputRate);
             double step = nominalStep * (1 + correction);
@@ -192,6 +212,22 @@ public sealed class Playout
             return new PlayoutStats(playing, streamId, inputRate, drift.TargetSeconds * 1000, drift.Level * 1000,
                 drift.Correction * 1e6, packets, lost, late, underruns, resyncs, streams);
         }
+    }
+
+    /// Takes a step off the target if, all through the stretch just played,
+    /// the buffer always had a step to spare and then some.
+    void ShrinkTarget()
+    {
+        if (drift.TargetSeconds > startTargetSeconds + 1e-9 &&
+            lowWaterSeconds >= GrowthSeconds + ShrinkMargin)
+            drift.TargetSeconds = Math.Max(startTargetSeconds, drift.TargetSeconds - GrowthSeconds);
+        StartCleanStretch();
+    }
+
+    void StartCleanStretch()
+    {
+        cleanSeconds = 0;
+        lowWaterSeconds = double.PositiveInfinity;
     }
 
     /// Input frames held beyond what the next interpolation needs.

@@ -22,7 +22,7 @@ public class PlayoutSimTests
     {
         public Playout Playout { get; init; } = new(OutRate, Target);
         public readonly ToneChecker Tone = new(ToneHz, OutRate);
-        public readonly List<(double t, PlayoutStats s)> Samples = new();
+        public readonly List<(double t, PlayoutStats s, long glitches)> Samples = new();
 
         public double DriftPpm;
         public double JitterMs = 10;
@@ -93,7 +93,7 @@ public class PlayoutSimTests
 
                 if (t >= nextSample)
                 {
-                    Samples.Add((t, Playout.Stats()));
+                    Samples.Add((t, Playout.Stats(), Tone.Glitches));
                     nextSample += 1;
                 }
             }
@@ -181,13 +181,15 @@ public class PlayoutSimTests
     public void RepeatedStallsRaiseTheTargetUntilTheyFit()
     {
         // A 70 ms silence every 20 s, as when Wi-Fi goes off to scan, against a
-        // 40 ms starting target that may grow to 250.
+        // 40 ms starting target that may grow to 250. The target is free to come
+        // down after a minute without a close call, but every minute has one, so
+        // it stays up rather than see-sawing through more dropouts.
         var sim = new Sim
         {
-            Playout = new Playout(OutRate, Target, 0.25),
+            Playout = new Playout(OutRate, Target, 0.25, shrinkAfterSeconds: 60),
             Stalled = t => t % 20 is >= 10 and < 10.07,
         };
-        sim.Run(300);
+        sim.Run(600);
         var s = sim.Playout.Stats();
         long underrunsByMinute2 = sim.Samples.First(x => x.t >= 120).s.Underruns;
 
@@ -195,6 +197,29 @@ public class PlayoutSimTests
         Assert.Equal(underrunsByMinute2, s.Underruns); // none once it has grown
         Assert.InRange(s.TargetMs, 70, 130);
         Assert.Equal(0, s.Late);
+    }
+
+    [Fact]
+    public void OnceTheNetworkCalmsDownTheTargetComesBackDown()
+    {
+        // Two long silences early on raise a 100 ms target by a step each; then
+        // the network is calm. With a 60 s clean stretch per step, it should be
+        // back to 100 ms, and no lower, without a dropout or glitch on the way.
+        const double start = 0.1;
+        var sim = new Sim
+        {
+            Playout = new Playout(OutRate, start, 0.25, shrinkAfterSeconds: 60),
+            Stalled = t => t is >= 10 and < 10.3 or >= 30 and < 30.3,
+        };
+        sim.Run(300);
+        var s = sim.Playout.Stats();
+        var settled = sim.Samples.First(x => x.t >= 35);
+
+        Assert.Equal(160, sim.Samples.Max(x => x.s.TargetMs), 6);
+        Assert.Equal(start * 1000, s.TargetMs, 6);
+        Assert.Equal(settled.s.Underruns, s.Underruns);
+        Assert.Equal(settled.glitches, sim.Tone.Glitches);
+        Assert.InRange(sim.MeanOverLast(30).level, start * 1000 - 2, start * 1000 + 2);
     }
 
     [Fact]

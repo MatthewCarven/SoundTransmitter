@@ -44,7 +44,12 @@ st-recv --list
 `--device` takes any unique part of a device's name, as shown by `--list`.
 
 `--latency` is the receiver's starting buffer. Each underrun raises it by 30 ms,
-up to `--max-latency`, so the target settles at whatever the network needs.
+up to `--max-latency`, so the target settles at whatever the network needs. It
+comes back down too: after 10 minutes in which the buffer never got within 45 ms
+of running dry, the target drops 30 ms, never below `--latency`. So a bad patch
+(the Wi-Fi dropping out for half a minute, say) costs some extra delay for a
+while, not for the rest of the session. The playback speeds up by 0.1% (too
+little to hear) for about half a minute to drain the extra, so nothing is cut.
 
 The default is 100 ms because of the laptop's Wi-Fi. It's on 2.4 GHz, and every
 minute or two Windows has the card scan the other channels, which goes silent
@@ -70,7 +75,8 @@ playing | buffer 100.1 / 100 ms | drift +57 ppm | 44100 Hz in | packets 10465 (+
 - **resyncs**: times it was far over target and jumped forward.
 
 Between the 5-second lines, the receiver logs `network gap: N ms` whenever no
-packets came for over 40 ms. The sender logs `capture gap` when the desktop
+packets came for over 40 ms, and `target down to N ms` each time the target
+comes back down a step. The sender logs `capture gap` when the desktop
 itself paused, and `capture overflow` if Windows ever dropped audio before the
 sender read it. Comparing the two logs tells you which end a dropout came from.
 The desktop's clock runs about 3.5 minutes fast, so allow for that when matching

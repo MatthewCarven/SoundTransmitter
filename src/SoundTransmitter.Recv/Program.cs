@@ -20,7 +20,8 @@ static class Program
           --port <n>            local UDP port (default 47800)
           --device <name>       playback device (default: the default device)
           --latency <ms>        starting buffer target (default 100)
-          --max-latency <ms>    each underrun raises the target 30 ms, up to this (default 300)
+          --max-latency <ms>    each underrun raises the target 30 ms, up to this (default 300);
+                                10 minutes without a close call lower it 30 ms, back to --latency
           --mute                run everything but play silence (for testing)
           --check-tone <hz>     count glitches in a test tone from st-send --tone
           --seconds <n>         stop after this long and print a summary
@@ -123,6 +124,7 @@ sealed class Receiver(IPEndPoint sender, int localPort, string? deviceName, doub
         var nextReport = TimeSpan.FromSeconds(5);
         long reportedPackets = 0;
         long reportedUnderruns = 0;
+        double reportedTargetMs = latency * 1000;
 
         while (!stop.IsCancellationRequested && failure is null)
         {
@@ -134,6 +136,9 @@ sealed class Receiver(IPEndPoint sender, int localPort, string? deviceName, doub
                 Log.Line($"underrun #{current.Underruns}: buffer ran dry; rebuffering to {current.TargetMs:F0} ms");
                 reportedUnderruns = current.Underruns;
             }
+            if (current.TargetMs < reportedTargetMs - 0.5)
+                Log.Line($"no close calls for {Playout.ShrinkAfterSeconds / 60:F0} min; target down to {current.TargetMs:F0} ms");
+            reportedTargetMs = current.TargetMs;
             if (now >= nextHello)
             {
                 PacketHeader.Control(PacketType.Hello, 0, helloSequence++).Write(hello);

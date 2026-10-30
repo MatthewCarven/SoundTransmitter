@@ -128,3 +128,24 @@ SSH), `startclient.cmd` on the laptop.
 - The target only ever grows, so one bad patch leaves 250 ms of delay for the
   rest of the session. Added to the TODO: let it shrink back after a long clean
   stretch.
+
+20:50, after Matthew's singing: he couldn't find either program in Task Manager
+(the desktop's runs hidden in the Services session) and asked me to stop both.
+Stopped the laptop's client window and st-recv, and over SSH the desktop's
+startserver.cmd and then st-send (the script first, or it restarts the
+program). Nothing of Sound Transmitter is running on either machine.
+
+The target now comes back down. `Playout` tracks the least spare buffer (beyond
+the 10 ms about to play) since playback last started. After 10 minutes of play
+(`Playout.ShrinkAfterSeconds`), if that never fell below a step plus a margin
+(30 + 15 ms), the target drops a step, never below `--latency`; either way the
+next stretch starts. The drift controller slews the level down at its 0.1%
+limit, about 30 s a step, so nothing is skipped. st-recv logs each step down.
+- New sim test: two 300 ms stalls take a 100 ms target to 160; with 60 s
+  stretches it's back to exactly 100 by 300 s, with no further underruns or
+  tone glitches, the level within 2 ms of target.
+- The repeated-stalls test (70 ms every 20 s) now runs 600 s with 60 s
+  stretches: every stretch has a close call, so the target stays up (70–130)
+  with no underruns after minute 2, rather than see-sawing.
+- 31 tests pass. st-recv republished. The sender is unchanged, so the desktop
+  needs nothing new.
