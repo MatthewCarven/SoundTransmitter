@@ -111,3 +111,20 @@ Not done: an hour-long or overnight run.
 Matthew ran `git init` and made github.com/MatthewCarven/SoundTransmitter
 (public). Phase 0 is committed as 46fe2d5 on `main`, renamed from git's default
 `master` to match his other repos, and pushed, with his go-ahead to push.
+
+Scripts live, 13:00 onwards: `startserver.cmd` on the desktop (started over
+SSH), `startclient.cmd` on the laptop.
+- 13:11 (laptop time): the laptop's Wi-Fi dropped out for about 25 s, in two
+  goes (~14 s, then 11.3 s). 5,064 packets lost, 2 underruns, target up to
+  160 ms. My SSH session to the desktop died at the same moment
+  (`client_loop: send disconnect: Connection reset`, exit 255), but st-send
+  carried on streaming, as before when ssh was killed.
+- 13:14: a fresh `startclient.cmd` window took over (started from Explorer, so
+  probably Matthew). It underran 4 times in its first 13 s, settling at 220 ms.
+- Since then the Wi-Fi has been choppier than this morning: signal 72% (was
+  92%), still 2.4 GHz ch 6, with 40–70 ms silences every few seconds rather
+  than once a minute. One more underrun at 14:34 took the target to 250 ms.
+  Playing cleanly at 15:11.
+- The target only ever grows, so one bad patch leaves 250 ms of delay for the
+  rest of the session. Added to the TODO: let it shrink back after a long clean
+  stretch.

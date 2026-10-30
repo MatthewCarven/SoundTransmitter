@@ -25,6 +25,7 @@ See PLAN.md for the why.
 - [ ] Sender follows the default device only at start; follow default-device changes (IMMNotificationClient)
 - [ ] A sender started over SSH runs hidden in the desktop's Services session and survives the SSH session ending (stop it with taskkill). Phase 3's logon task replaces that
 - [ ] Receiver: rebuild the output when its device goes away or changes format
+- [ ] Receiver: the adaptive target only grows. After a long clean stretch (say 10 min with no gap near the buffer), step it back down towards `--latency`. Seen 2026-10-30: one 25 s Wi-Fi outage left it at 250 ms for the rest of the session
 
 ## Phase 1: toolchain + stock sample
 - [ ] Build unmodified simpleaudiosample on the laptop
